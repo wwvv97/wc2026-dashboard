@@ -1,0 +1,753 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>⚽ FIFA World Cup 2026 Dashboard</title>
+<style>
+  :root {
+    --green:   #1a7a3c;
+    --dkgreen: #0d5229;
+    --gold:    #c9a227;
+    --red:     #d32f2f;
+    --blue:    #1565c0;
+    --grey:    #f5f5f5;
+    --border:  #ddd;
+    --text:    #1a1a1a;
+    --q1:      #1b5e20;
+    --q2:      #2e7d32;
+    --q3:      #f57f17;
+    --elim:    #b71c1c;
+    --tbd:     #546e7a;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Segoe UI', Arial, sans-serif; background: #f0f0f0; color: var(--text); }
+
+  /* ─── Header ─── */
+  .header {
+    background: linear-gradient(135deg, var(--dkgreen) 0%, var(--green) 60%, #2d9c56 100%);
+    color: white; padding: 18px 24px 0; text-align: center;
+  }
+  .header h1 { font-size: 1.8rem; font-weight: 700; letter-spacing: 1px; }
+  .header .sub { font-size: 0.85rem; opacity: 0.85; margin-top: 4px; }
+  .header .updated { font-size: 0.75rem; opacity: 0.7; margin-top: 2px; }
+
+  /* ─── Tabs ─── */
+  .tabs { display: flex; gap: 2px; margin-top: 14px; overflow-x: auto; }
+  .tab-btn {
+    padding: 10px 18px; background: rgba(255,255,255,0.15);
+    border: none; color: white; cursor: pointer; font-size: 0.9rem;
+    border-radius: 6px 6px 0 0; white-space: nowrap; transition: background 0.2s;
+  }
+  .tab-btn:hover { background: rgba(255,255,255,0.25); }
+  .tab-btn.active { background: white; color: var(--dkgreen); font-weight: 700; }
+
+  /* ─── Tab content ─── */
+  .tab-content { display: none; padding: 20px; }
+  .tab-content.active { display: block; }
+
+  /* ─── Group standings ─── */
+  .groups-grid {
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(360px, 1fr)); gap: 16px;
+  }
+  .group-card {
+    background: white; border-radius: 8px; box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+    overflow: hidden;
+  }
+  .group-header {
+    background: var(--dkgreen); color: white;
+    padding: 10px 14px; font-weight: 700; font-size: 1rem;
+  }
+  table.standings {
+    width: 100%; border-collapse: collapse; font-size: 0.82rem;
+  }
+  table.standings th {
+    background: #e8f5e9; padding: 6px 8px; text-align: center;
+    font-weight: 600; color: var(--dkgreen); border-bottom: 2px solid var(--border);
+  }
+  table.standings th:nth-child(2) { text-align: left; }
+  table.standings td { padding: 6px 8px; text-align: center; border-bottom: 1px solid #f0f0f0; }
+  table.standings td:nth-child(2) { text-align: left; font-weight: 500; }
+  table.standings tr.q1 td { background: #e8f5e9; border-left: 4px solid var(--q1); }
+  table.standings tr.q2 td { background: #f1f8e9; border-left: 4px solid var(--q2); }
+  table.standings tr.q3 td { background: #fff8e1; border-left: 4px solid var(--q3); }
+  table.standings tr.elim td { background: #fce4e4; border-left: 4px solid var(--elim); }
+  table.standings tr.tbd td { background: #fafafa; border-left: 4px solid #90a4ae; }
+  .legend { display: flex; gap: 12px; flex-wrap: wrap; padding: 10px 14px; font-size: 0.75rem; }
+  .legend-item { display: flex; align-items: center; gap: 5px; }
+  .legend-dot { width: 12px; height: 12px; border-radius: 2px; }
+
+  /* ─── Overall table ─── */
+  table.overall {
+    width: 100%; border-collapse: collapse; font-size: 0.82rem;
+    background: white; border-radius: 8px; overflow: hidden;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+  }
+  table.overall th {
+    background: var(--dkgreen); color: white;
+    padding: 8px 10px; text-align: center; font-weight: 600;
+  }
+  table.overall th:nth-child(3) { text-align: left; }
+  table.overall td { padding: 6px 10px; text-align: center; border-bottom: 1px solid #f0f0f0; }
+  table.overall td:nth-child(3) { text-align: left; font-weight: 500; }
+  table.overall tr.q1 td { background: #e8f5e9; }
+  table.overall tr.q2 td { background: #f1f8e9; }
+  table.overall tr.q3 td { background: #fff8e1; }
+  table.overall tr.elim td { background: #fce4e4; }
+  table.overall tr:hover td { filter: brightness(0.95); }
+
+  /* ─── Knockout bracket ─── */
+  .bracket-container { overflow-x: auto; padding-bottom: 10px; }
+  .bracket {
+    display: flex; gap: 0; min-width: 900px; align-items: flex-start;
+  }
+  .bracket-round {
+    display: flex; flex-direction: column; min-width: 160px;
+  }
+  .bracket-round-label {
+    text-align: center; font-weight: 700; color: var(--dkgreen);
+    padding: 8px; background: #e8f5e9; border-radius: 6px 6px 0 0;
+    font-size: 0.85rem; margin-bottom: 4px;
+  }
+  .bracket-matches { display: flex; flex-direction: column; gap: 8px; padding: 4px; }
+  .bracket-match {
+    background: white; border-radius: 6px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.12); overflow: hidden;
+    border: 1px solid var(--border); font-size: 0.78rem;
+  }
+  .bracket-team {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 5px 8px; gap: 6px;
+  }
+  .bracket-team:first-child { border-bottom: 1px solid #f0f0f0; }
+  .bracket-team.winner { background: #e8f5e9; font-weight: 700; }
+  .bracket-team .team-name { flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .bracket-team .team-score {
+    font-weight: 700; min-width: 18px; text-align: right;
+    color: var(--dkgreen);
+  }
+  .bracket-connector { display: flex; align-items: center; color: #ccc; font-size: 1.2rem; padding: 0 2px; }
+  .tbd-team { color: #999; font-style: italic; }
+
+  /* ─── Player KPIs ─── */
+  .kpi-grid {
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 12px; margin-bottom: 24px;
+  }
+  .kpi-card {
+    background: white; border-radius: 8px; padding: 16px;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.1); text-align: center;
+    border-top: 4px solid var(--green);
+  }
+  .kpi-icon { font-size: 1.6rem; margin-bottom: 6px; }
+  .kpi-value { font-size: 2rem; font-weight: 800; color: var(--dkgreen); }
+  .kpi-unit { font-size: 0.72rem; color: #777; margin-top: 2px; }
+  .kpi-label { font-size: 0.8rem; font-weight: 600; color: #444; margin-top: 6px; }
+
+  .kpi-tables { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 16px; }
+  .kpi-table-card {
+    background: white; border-radius: 8px;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.1); overflow: hidden;
+  }
+  .kpi-table-header {
+    background: var(--dkgreen); color: white;
+    padding: 10px 14px; display: flex; align-items: center; gap: 8px;
+    font-weight: 700; font-size: 0.9rem;
+  }
+  table.kpi-tbl { width: 100%; border-collapse: collapse; font-size: 0.82rem; }
+  table.kpi-tbl th {
+    background: #e8f5e9; padding: 6px 10px;
+    text-align: left; font-weight: 600; color: var(--dkgreen);
+    border-bottom: 2px solid var(--border);
+  }
+  table.kpi-tbl th:last-child, table.kpi-tbl td:last-child { text-align: right; font-weight: 700; }
+  table.kpi-tbl td { padding: 7px 10px; border-bottom: 1px solid #f5f5f5; }
+  table.kpi-tbl tr:nth-child(1) td { background: #fff9e6; }
+  table.kpi-tbl .rank { color: #999; font-size: 0.75rem; }
+  .show-more-btn {
+    display: block; width: 100%; padding: 8px;
+    background: #f5f5f5; border: none; cursor: pointer;
+    color: var(--green); font-weight: 600; font-size: 0.8rem;
+    border-top: 1px solid var(--border);
+  }
+  .show-more-btn:hover { background: #e8f5e9; }
+  .full-table { display: none; }
+  .full-table.visible { display: block; }
+
+  /* ─── Fixtures ─── */
+  .fixtures-section { margin-bottom: 24px; }
+  .fixtures-section h3 {
+    font-size: 1rem; color: var(--dkgreen); margin-bottom: 10px;
+    padding-bottom: 6px; border-bottom: 2px solid var(--green);
+  }
+  .fixture-list { display: flex; flex-direction: column; gap: 8px; }
+  .fixture {
+    background: white; border-radius: 8px; padding: 12px 16px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+    display: flex; align-items: center; gap: 12px;
+    flex-wrap: wrap;
+  }
+  .fixture.played { border-left: 4px solid var(--green); }
+  .fixture.upcoming { border-left: 4px solid #90a4ae; }
+  .fixture-date { font-size: 0.75rem; color: #777; min-width: 90px; }
+  .fixture-teams {
+    flex: 1; display: flex; align-items: center; gap: 10px;
+    justify-content: center; font-weight: 600;
+  }
+  .fixture-team { min-width: 120px; }
+  .fixture-team.home { text-align: right; }
+  .fixture-team.away { text-align: left; }
+  .fixture-score {
+    background: var(--dkgreen); color: white;
+    padding: 4px 12px; border-radius: 4px; font-weight: 700;
+    font-size: 1rem; min-width: 52px; text-align: center;
+  }
+  .fixture-score.upcoming { background: #90a4ae; font-size: 0.85rem; }
+  .fixture-venue { font-size: 0.72rem; color: #999; min-width: 100px; text-align: right; }
+  .fixture-group { font-size: 0.7rem; background: #e8f5e9; color: var(--dkgreen);
+    padding: 2px 6px; border-radius: 10px; font-weight: 600; }
+
+  /* ─── Best XI ─── */
+  .best-xi-wrapper { max-width: 700px; margin: 0 auto; }
+  .best-xi-title {
+    text-align: center; font-size: 1.1rem; font-weight: 700;
+    color: var(--dkgreen); margin-bottom: 16px;
+  }
+  .pitch {
+    background: linear-gradient(180deg,
+      #2d8a4e 0%, #2d8a4e 8%,
+      #348f54 8%, #348f54 16%,
+      #2d8a4e 16%, #2d8a4e 24%,
+      #348f54 24%, #348f54 32%,
+      #2d8a4e 32%, #2d8a4e 40%,
+      #348f54 40%, #348f54 48%,
+      #2d8a4e 48%, #2d8a4e 56%,
+      #348f54 56%, #348f54 64%,
+      #2d8a4e 64%, #2d8a4e 72%,
+      #348f54 72%, #348f54 80%,
+      #2d8a4e 80%, #2d8a4e 88%,
+      #348f54 88%, #348f54 100%
+    );
+    border: 3px solid white;
+    border-radius: 10px;
+    padding: 20px 16px;
+    position: relative;
+    min-height: 520px;
+  }
+  /* Pitch markings */
+  .pitch::before {
+    content: '';
+    position: absolute; top: 50%; left: 10%; right: 10%;
+    height: 2px; background: rgba(255,255,255,0.4);
+  }
+  .pitch::after {
+    content: '';
+    position: absolute; top: 35%; left: 25%; right: 25%; bottom: 35%;
+    border: 2px solid rgba(255,255,255,0.3); border-radius: 50%;
+  }
+  .pitch-row {
+    display: flex; justify-content: space-evenly; align-items: center;
+    margin-bottom: 14px;
+  }
+  .pitch-row:last-child { margin-bottom: 0; }
+  .player-card {
+    display: flex; flex-direction: column; align-items: center;
+    background: rgba(255,255,255,0.92); border-radius: 8px;
+    padding: 8px 10px; min-width: 100px; max-width: 120px;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.25); cursor: default;
+    transition: transform 0.2s;
+  }
+  .player-card:hover { transform: scale(1.05); }
+  .player-card .pc-pos {
+    font-size: 0.65rem; font-weight: 700; color: white;
+    background: var(--dkgreen); padding: 2px 6px; border-radius: 10px;
+    margin-bottom: 4px;
+  }
+  .player-card .pc-name {
+    font-size: 0.78rem; font-weight: 700; text-align: center;
+    color: var(--text); line-height: 1.2;
+  }
+  .player-card .pc-team {
+    font-size: 0.65rem; color: #666; margin-top: 2px;
+  }
+  .player-card .pc-stats {
+    display: flex; gap: 6px; margin-top: 5px; font-size: 0.65rem;
+  }
+  .pc-stat {
+    background: #e8f5e9; color: var(--dkgreen);
+    padding: 1px 5px; border-radius: 8px; font-weight: 700;
+  }
+
+  /* ─── Section headers ─── */
+  .section-title {
+    font-size: 1.1rem; font-weight: 700; color: var(--dkgreen);
+    margin-bottom: 14px; padding-bottom: 8px;
+    border-bottom: 3px solid var(--green); display: flex; align-items: center; gap: 8px;
+  }
+
+  /* ─── Utility ─── */
+  .badge {
+    display: inline-block; padding: 2px 8px; border-radius: 10px;
+    font-size: 0.7rem; font-weight: 700;
+  }
+  .badge-q1  { background: var(--q1);  color: white; }
+  .badge-q2  { background: var(--q2);  color: white; }
+  .badge-q3  { background: var(--q3);  color: #333; }
+  .badge-e   { background: var(--elim); color: white; }
+  .badge-tbd { background: #90a4ae; color: white; }
+
+  @media (max-width: 600px) {
+    .kpi-grid { grid-template-columns: repeat(2, 1fr); }
+    .bracket { min-width: 700px; }
+    .fixture-teams { flex-direction: column; }
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>⚽ FIFA World Cup 2026</h1>
+  <div class="sub">USA · Canada · Mexico — June 11 – July 19, 2026</div>
+  <div class="updated">Last updated: {{ generated_at }}</div>
+  <div class="tabs">
+    <button class="tab-btn active" onclick="showTab('groups', this)">🏟 Group Standings</button>
+    <button class="tab-btn" onclick="showTab('overall', this)">📊 Overall Table</button>
+    <button class="tab-btn" onclick="showTab('knockout', this)">🏆 Knockout Bracket</button>
+    <button class="tab-btn" onclick="showTab('players', this)">👤 Players</button>
+    <button class="tab-btn" onclick="showTab('fixtures', this)">📅 Fixtures</button>
+    <button class="tab-btn" onclick="showTab('bestxi', this)">⭐ Best XI</button>
+  </div>
+</div>
+
+<!-- ═══════════════ TAB 1: GROUP STANDINGS ═══════════════ -->
+<div id="tab-groups" class="tab-content active">
+  <div class="legend" style="background:white;border-radius:8px;margin-bottom:14px;box-shadow:0 1px 4px rgba(0,0,0,.08)">
+    <div class="legend-item"><div class="legend-dot" style="background:var(--q1)"></div><span>1st — Qualified</span></div>
+    <div class="legend-item"><div class="legend-dot" style="background:var(--q2)"></div><span>2nd — Qualified</span></div>
+    <div class="legend-item"><div class="legend-dot" style="background:var(--q3)"></div><span>3rd — Potential qualifier</span></div>
+    <div class="legend-item"><div class="legend-dot" style="background:var(--elim)"></div><span>4th — Eliminated</span></div>
+    <div class="legend-item"><div class="legend-dot" style="background:#90a4ae"></div><span>Not yet played</span></div>
+  </div>
+
+  <div class="groups-grid">
+    {% for group_letter, teams in group_standings.items() %}
+    <div class="group-card">
+      <div class="group-header">Group {{ group_letter }}</div>
+      <table class="standings">
+        <thead>
+          <tr>
+            <th>#</th><th>Team</th><th>P</th><th>W</th><th>D</th><th>L</th>
+            <th>GF</th><th>GA</th><th>GD</th><th>Pts</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for t in teams %}
+          <tr class="{{ t.status | lower }}">
+            <td>{{ t.group_pos }}</td>
+            <td>{{ t.team }}</td>
+            <td>{{ t.pld }}</td>
+            <td>{{ t.w }}</td>
+            <td>{{ t.d }}</td>
+            <td>{{ t.l }}</td>
+            <td>{{ t.gf }}</td>
+            <td>{{ t.ga }}</td>
+            <td>{% if t.gd > 0 %}+{% endif %}{{ t.gd }}</td>
+            <td><strong>{{ t.pts }}</strong></td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+
+<!-- ═══════════════ TAB 2: OVERALL TABLE ═══════════════ -->
+<div id="tab-overall" class="tab-content">
+  <div class="section-title">📊 Overall Standings — All 48 Teams</div>
+  <p style="font-size:0.8rem;color:#666;margin-bottom:12px">
+    Ranked by: Points → Goal Difference → Goals Scored → Goals Against → Fair Play. Top 24 (1st + 2nd) auto-qualify. Best 8 of 12 third-place teams also advance.
+  </p>
+  <table class="overall">
+    <thead>
+      <tr>
+        <th>#</th><th>Grp</th><th>Team</th>
+        <th>P</th><th>W</th><th>D</th><th>L</th>
+        <th>GF</th><th>GA</th><th>GD</th><th>Pts</th><th>Status</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for t in overall_table %}
+      <tr class="{{ t.status | lower }}">
+        <td><strong>{{ t.overall_pos }}</strong></td>
+        <td>{{ t.group }}</td>
+        <td>{{ t.team }}</td>
+        <td>{{ t.pld }}</td>
+        <td>{{ t.w }}</td>
+        <td>{{ t.d }}</td>
+        <td>{{ t.l }}</td>
+        <td>{{ t.gf }}</td>
+        <td>{{ t.ga }}</td>
+        <td>{% if t.gd > 0 %}+{% endif %}{{ t.gd }}</td>
+        <td><strong>{{ t.pts }}</strong></td>
+        <td>
+          {% if t.status == 'Q1' %}<span class="badge badge-q1">1st</span>
+          {% elif t.status == 'Q2' %}<span class="badge badge-q2">2nd</span>
+          {% elif t.status == 'Q3' %}<span class="badge badge-q3">3rd ✓</span>
+          {% elif t.status == 'E' %}<span class="badge badge-e">Out</span>
+          {% else %}<span class="badge badge-tbd">TBD</span>{% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<!-- ═══════════════ TAB 3: KNOCKOUT BRACKET ═══════════════ -->
+<div id="tab-knockout" class="tab-content">
+  <div class="section-title">🏆 Knockout Bracket — Round of 32 onwards</div>
+  <p style="font-size:0.8rem;color:#666;margin-bottom:14px">
+    Projected bracket based on current group standings. Teams in <em>italics</em> are projected based on live positions.
+  </p>
+  <div class="bracket-container">
+    <div class="bracket">
+
+      <!-- R32 column 1 (matches 1-8) -->
+      <div class="bracket-round">
+        <div class="bracket-round-label">Round of 32</div>
+        <div class="bracket-matches">
+          {% for m in bracket.r32[:8] %}
+          <div class="bracket-match">
+            <div class="bracket-team {% if m.winner == m.side_a %}winner{% endif %}">
+              <span class="team-name {% if not m.score_a %}tbd-team{% endif %}">{{ m.side_a }}</span>
+              <span class="team-score">{{ m.score_a if m.score_a is not none else '' }}</span>
+            </div>
+            <div class="bracket-team {% if m.winner == m.side_b %}winner{% endif %}">
+              <span class="team-name {% if not m.score_b %}tbd-team{% endif %}">{{ m.side_b }}</span>
+              <span class="team-score">{{ m.score_b if m.score_b is not none else '' }}</span>
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+
+      <!-- R16 column 1 -->
+      <div class="bracket-round">
+        <div class="bracket-round-label">Round of 16</div>
+        <div class="bracket-matches">
+          {% for m in bracket.r16[:4] %}
+          <div class="bracket-match">
+            <div class="bracket-team">
+              <span class="team-name tbd-team">{{ m.team_a_proj }}</span>
+              <span class="team-score"></span>
+            </div>
+            <div class="bracket-team">
+              <span class="team-name tbd-team">{{ m.team_b_proj }}</span>
+              <span class="team-score"></span>
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+
+      <!-- QF column 1 -->
+      <div class="bracket-round">
+        <div class="bracket-round-label">Quarter-Finals</div>
+        <div class="bracket-matches">
+          {% for m in bracket.qf[:2] %}
+          <div class="bracket-match">
+            <div class="bracket-team">
+              <span class="team-name tbd-team">{{ m.side_a }}</span>
+              <span class="team-score"></span>
+            </div>
+            <div class="bracket-team">
+              <span class="team-name tbd-team">{{ m.side_b }}</span>
+              <span class="team-score"></span>
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+
+      <!-- SF + Final -->
+      <div class="bracket-round">
+        <div class="bracket-round-label">Semi-Finals</div>
+        <div class="bracket-matches">
+          {% for m in bracket.sf[:1] %}
+          <div class="bracket-match">
+            <div class="bracket-team">
+              <span class="team-name tbd-team">{{ m.side_a }}</span>
+              <span class="team-score"></span>
+            </div>
+            <div class="bracket-team">
+              <span class="team-name tbd-team">{{ m.side_b }}</span>
+              <span class="team-score"></span>
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+
+      <!-- Final -->
+      <div class="bracket-round">
+        <div class="bracket-round-label">🏆 FINAL</div>
+        <div class="bracket-matches">
+          {% for m in bracket.final %}
+          <div class="bracket-match" style="border: 2px solid var(--gold)">
+            <div class="bracket-team">
+              <span class="team-name tbd-team">{{ m.side_a }}</span>
+              <span class="team-score">{{ m.score_a if m.score_a is not none else '' }}</span>
+            </div>
+            <div class="bracket-team">
+              <span class="team-name tbd-team">{{ m.side_b }}</span>
+              <span class="team-score">{{ m.score_b if m.score_b is not none else '' }}</span>
+            </div>
+          </div>
+          <div style="text-align:center;font-size:0.7rem;color:#999;margin-top:4px">
+            🗓 {{ m.date }}<br>📍 {{ m.city }}
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+
+      <!-- R32 column 2 (matches 9-16) -->
+      <div class="bracket-round" style="order: -1">
+        <div class="bracket-round-label">Round of 32</div>
+        <div class="bracket-matches">
+          {% for m in bracket.r32[8:] %}
+          <div class="bracket-match">
+            <div class="bracket-team {% if m.winner == m.side_a %}winner{% endif %}">
+              <span class="team-name {% if not m.score_a %}tbd-team{% endif %}">{{ m.side_a }}</span>
+              <span class="team-score">{{ m.score_a if m.score_a is not none else '' }}</span>
+            </div>
+            <div class="bracket-team {% if m.winner == m.side_b %}winner{% endif %}">
+              <span class="team-name {% if not m.score_b %}tbd-team{% endif %}">{{ m.side_b }}</span>
+              <span class="team-score">{{ m.score_b if m.score_b is not none else '' }}</span>
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════ TAB 4: PLAYERS ═══════════════ -->
+<div id="tab-players" class="tab-content">
+  <div class="section-title">👤 Player Statistics</div>
+
+  <!-- KPI cards -->
+  <div class="kpi-grid">
+    {% for key, kpi in player_kpis.items() %}
+    <div class="kpi-card">
+      <div class="kpi-icon">{{ kpi.icon }}</div>
+      <div class="kpi-value">{{ kpi.value }}</div>
+      <div class="kpi-unit">{{ kpi.unit }}</div>
+      <div class="kpi-label">{{ kpi.label }}</div>
+    </div>
+    {% endfor %}
+  </div>
+
+  <!-- Top-5 tables -->
+  <div class="kpi-tables">
+    {% for key, kpi in player_kpis.items() %}
+    <div class="kpi-table-card">
+      <div class="kpi-table-header">
+        <span>{{ kpi.icon }}</span>
+        <span>{{ kpi.label }}</span>
+      </div>
+      <table class="kpi-tbl">
+        <thead>
+          <tr>
+            <th>#</th><th>Player</th><th>Team</th><th>{{ kpi.top5[0].label if kpi.top5 else '' }}</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for p in kpi.top5 %}
+          <tr>
+            <td class="rank">{{ p.rank }}</td>
+            <td><strong>{{ p.name }}</strong></td>
+            <td>{{ p.team }}</td>
+            <td>{{ p.value }}</td>
+          </tr>
+          {% endfor %}
+          {% if not kpi.top5 %}
+          <tr><td colspan="4" style="color:#999;text-align:center;padding:12px">No data yet</td></tr>
+          {% endif %}
+        </tbody>
+      </table>
+      {% if kpi.full | length > 5 %}
+      <button class="show-more-btn" onclick="toggleFull('{{ key }}')">▼ Show full table ({{ kpi.full | length }} players)</button>
+      <div class="full-table" id="full-{{ key }}">
+        <table class="kpi-tbl">
+          <thead>
+            <tr><th>#</th><th>Player</th><th>Team</th><th>Pos</th><th>{{ kpi.show_col | title }}</th></tr>
+          </thead>
+          <tbody>
+            {% for p in kpi.full %}
+            <tr>
+              <td class="rank">{{ loop.index }}</td>
+              <td>{{ p.name }}</td>
+              <td>{{ p.get('team','') }}</td>
+              <td>{{ p.get('pos','') }}</td>
+              <td><strong>{{ p.get(kpi.show_col, 0) }}</strong></td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% endif %}
+    </div>
+    {% endfor %}
+  </div>
+</div>
+
+<!-- ═══════════════ TAB 5: FIXTURES ═══════════════ -->
+<div id="tab-fixtures" class="tab-content">
+  {% if played_fixtures %}
+  <div class="fixtures-section">
+    <h3>✅ Results ({{ played_fixtures | length }} matches played)</h3>
+    <div class="fixture-list">
+      {% for m in played_fixtures %}
+      <div class="fixture played">
+        <div class="fixture-date">{{ m.date }}<br><small>{{ m.time }}</small></div>
+        {% if m.group %}<span class="fixture-group">Grp {{ m.group }}</span>{% endif %}
+        <div class="fixture-teams">
+          <div class="fixture-team home">{{ m.home }}</div>
+          <div class="fixture-score">{{ m.score_a }} – {{ m.score_b }}</div>
+          <div class="fixture-team away">{{ m.away }}</div>
+        </div>
+        <div class="fixture-venue">{{ m.venue }}</div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+  {% endif %}
+
+  {% if upcoming_fixtures %}
+  <div class="fixtures-section">
+    <h3>🔜 Upcoming Matches ({{ upcoming_fixtures | length }} remaining)</h3>
+    <div class="fixture-list">
+      {% for m in upcoming_fixtures %}
+      <div class="fixture upcoming">
+        <div class="fixture-date">{{ m.date }}<br><small>{{ m.time }}</small></div>
+        {% if m.group %}<span class="fixture-group">Grp {{ m.group }}</span>{% endif %}
+        <div class="fixture-teams">
+          <div class="fixture-team home">{{ m.home }}</div>
+          <div class="fixture-score upcoming">vs</div>
+          <div class="fixture-team away">{{ m.away }}</div>
+        </div>
+        <div class="fixture-venue">{{ m.venue }}</div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+  {% endif %}
+
+  {% if not played_fixtures and not upcoming_fixtures %}
+  <p style="color:#999;text-align:center;padding:40px">No fixture data available — run the scraper to update.</p>
+  {% endif %}
+</div>
+
+<!-- ═══════════════ TAB 6: BEST XI ═══════════════ -->
+<div id="tab-bestxi" class="tab-content">
+  <div class="best-xi-wrapper">
+    <div class="best-xi-title">⭐ Best XI So Far — {{ best_xi.formation }} Formation</div>
+    <p style="text-align:center;font-size:0.8rem;color:#666;margin-bottom:16px">
+      GK: clean sheets + saves · DEF: clean sheets + goals/assists · MID/FWD: goals + assists
+    </p>
+
+    <div class="pitch">
+      <!-- Forwards -->
+      <div class="pitch-row">
+        {% for p in best_xi.forwards %}
+        <div class="player-card">
+          <span class="pc-pos">FW</span>
+          <div class="pc-name">{{ p.name }}</div>
+          <div class="pc-team">{{ p.team }}</div>
+          <div class="pc-stats">
+            <span class="pc-stat">⚽{{ p.goals }}</span>
+            <span class="pc-stat">🅰️{{ p.assists }}</span>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+
+      <!-- Midfielders -->
+      <div class="pitch-row">
+        {% for p in best_xi.midfielders %}
+        <div class="player-card">
+          <span class="pc-pos">MF</span>
+          <div class="pc-name">{{ p.name }}</div>
+          <div class="pc-team">{{ p.team }}</div>
+          <div class="pc-stats">
+            <span class="pc-stat">⚽{{ p.goals }}</span>
+            <span class="pc-stat">🅰️{{ p.assists }}</span>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+
+      <!-- Defenders -->
+      <div class="pitch-row">
+        {% for p in best_xi.defenders %}
+        <div class="player-card">
+          <span class="pc-pos">DF</span>
+          <div class="pc-name">{{ p.name }}</div>
+          <div class="pc-team">{{ p.team }}</div>
+          <div class="pc-stats">
+            <span class="pc-stat">🧹{{ p.clean_sheets }}</span>
+            <span class="pc-stat">⚽{{ p.goals }}</span>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+
+      <!-- Goalkeeper -->
+      <div class="pitch-row">
+        <div class="player-card" style="border-top: 3px solid var(--gold)">
+          <span class="pc-pos" style="background:var(--gold);color:#333">GK</span>
+          <div class="pc-name">{{ best_xi.gk.name }}</div>
+          <div class="pc-team">{{ best_xi.gk.team }}</div>
+          <div class="pc-stats">
+            <span class="pc-stat">🧤{{ best_xi.gk.clean_sheets }}</span>
+            <span class="pc-stat">🙌{{ best_xi.gk.saves }}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Legend -->
+    <div style="display:flex;gap:16px;justify-content:center;flex-wrap:wrap;margin-top:14px;font-size:0.78rem;color:#555">
+      <span>⚽ Goals</span>
+      <span>🅰️ Assists</span>
+      <span>🧹 Clean Sheets</span>
+      <span>🙌 Saves</span>
+    </div>
+  </div>
+</div>
+
+<script>
+function showTab(name, btn) {
+  document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+  document.getElementById('tab-' + name).classList.add('active');
+  btn.classList.add('active');
+}
+
+function toggleFull(key) {
+  const el = document.getElementById('full-' + key);
+  const btn = el.previousElementSibling;
+  if (el.classList.contains('visible')) {
+    el.classList.remove('visible');
+    btn.textContent = btn.textContent.replace('▲', '▼').replace('Hide', 'Show');
+  } else {
+    el.classList.add('visible');
+    btn.textContent = btn.textContent.replace('▼', '▲').replace('Show', 'Hide');
+  }
+}
+</script>
+
+</body>
+</html>
